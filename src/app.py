@@ -1,6 +1,7 @@
 from modules.analysis_orchestrator import AnalysisType
 from ui.sidebar import render_sidebar
 from styles.custom_css import load_custom_css
+from app_config import config
 import streamlit as st
 import os
 
@@ -125,7 +126,7 @@ if analysis_button and has_data:
         from modules.analysis_orchestrator import run_analysis_workflow
 
         analysis_results = run_analysis_workflow(
-            micro_data, transfer_data, analysis_type=AnalysisType.STANDARD)
+            micro_data, transfer_data, analysis_type=config.DEFAULT_ANALYSIS_TYPE)
         formatted_results = analysis_results.get("formatted_results", None)
 
         st.session_state.formatted_analysis = formatted_results
@@ -157,7 +158,7 @@ if "formatted_analysis" in st.session_state:
 
                 formatted_prompt = format_prompt(
                     st.session_state.formatted_analysis,
-                    prompt_type="standard"
+                    prompt_type=config.DEFAULT_PROMPT_TYPE
                 )
 
                 summary_result = generate_ai_summary(

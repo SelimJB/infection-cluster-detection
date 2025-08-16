@@ -10,7 +10,7 @@ class AnalysisType(Enum):
     def display_name(self):
         """Get user-friendly display name"""
         names = {
-            self.STANDARD: "📊 Standard Analysis",
+            self.STANDARD: "🧬 Episode-Based Cluster Detection",
             self.MOCK: "🧪 Mock Analysis",
         }
         return names[self]
@@ -19,7 +19,7 @@ class AnalysisType(Enum):
     def description(self):
         """Get detailed description"""
         descriptions = {
-            self.STANDARD: "",
+            self.STANDARD: "Advanced infection cluster detection using episode-based graph analysis",
             self.MOCK: "Mock data analysis for testing and development purposes",
         }
         return descriptions[self]
