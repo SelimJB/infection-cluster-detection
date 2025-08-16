@@ -211,9 +211,9 @@ def prepare_episodes(microbiology_data: pd.DataFrame) -> List[InfectionEpisode]:
     if positive_tests.empty:
         return episodes
 
-    # Convert date column
+    # Convert date column (keep as datetime for arithmetic operations)
     positive_tests['collection_date'] = pd.to_datetime(
-        positive_tests['collection_date']).dt.date
+        positive_tests['collection_date'])
 
     # Group by (patient_id, infection)
     for (patient_id, infection), group in positive_tests.groupby(['patient_id', 'infection']):
@@ -263,8 +263,8 @@ def create_episodes_for_patient(patient_id: str, infection: str, tests: List[Dic
             patient_id=patient_id,
             infection_type=infection,
             episode_number=episode_num,
-            episode_start=min_date - timedelta(days=14),
-            episode_end=max_date + timedelta(days=14),
+            episode_start=(min_date - timedelta(days=14)).date(),
+            episode_end=(max_date + timedelta(days=14)).date(),
             positive_tests=test_group
         )
         episodes.append(episode)
@@ -278,9 +278,12 @@ def build_presence_index(episodes: List[InfectionEpisode], transfers_data: pd.Da
     """
     presence_index = defaultdict(list)
 
-    # Convert date column
+    # Convert date columns
     transfers_data = transfers_data.copy()
-    transfers_data['date'] = pd.to_datetime(transfers_data['date']).dt.date
+    transfers_data['ward_in_time'] = pd.to_datetime(
+        transfers_data['ward_in_time']).dt.date
+    transfers_data['ward_out_time'] = pd.to_datetime(
+        transfers_data['ward_out_time']).dt.date
 
     for episode in episodes:
         # Find patient transfers during episode window
@@ -288,12 +291,20 @@ def build_presence_index(episodes: List[InfectionEpisode], transfers_data: pd.Da
                                            == episode.patient_id]
 
         for _, transfer in patient_transfers.iterrows():
-            transfer_date = transfer['date']
+            ward_in = transfer['ward_in_time']
+            ward_out = transfer['ward_out_time']
+            location = transfer['location']
 
-            # Check if transfer is within episode window
-            if episode.episode_start <= transfer_date <= episode.episode_end:
-                key = (transfer['location'], transfer_date)
-                presence_index[key].append(episode.episode_id)
+            # Generate all dates during the transfer period
+            current_date = ward_in
+            while current_date <= ward_out:
+                # Check if this date is within episode window
+                if episode.episode_start <= current_date <= episode.episode_end:
+                    key = (location, current_date)
+                    presence_index[key].append(episode.episode_id)
+
+                # Move to next day
+                current_date = current_date + timedelta(days=1)
 
     return presence_index
 
