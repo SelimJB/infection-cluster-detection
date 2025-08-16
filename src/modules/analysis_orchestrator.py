@@ -38,6 +38,7 @@ def run_analysis_workflow(micro_data, transfer_data, analysis_type=AnalysisType.
         dict: {
             "success": bool,
             "message": str,
+            "raw_results": dict,
             "analysis_results": dict,
             "formatted_results": str,
             "analysis_type": str
@@ -53,25 +54,13 @@ def run_analysis_workflow(micro_data, transfer_data, analysis_type=AnalysisType.
                 "analysis_type": analysis_type
             }
 
-        all_data = []
-        for data in micro_data:
-            all_data.append({
-                "filename": f"microbiology_{data.get('filename', 'unknown')}",
-                "content": data.get('content', '')
-            })
-
-        for data in transfer_data:
-            all_data.append({
-                "filename": f"transfers_{data.get('filename', 'unknown')}",
-                "content": data.get('content', '')
-            })
-
         analysis_results, formatted_results = _run_analysis_by_type(
-            all_data, analysis_type)
+            micro_data, transfer_data, analysis_type)
 
         return {
             "success": True,
             "message": f"Analysis completed successfully using {analysis_type.display_name}!",
+            "raw_results": analysis_results,
             "analysis_results": analysis_results,
             "formatted_results": formatted_results,
             "analysis_type": analysis_type
@@ -81,18 +70,20 @@ def run_analysis_workflow(micro_data, transfer_data, analysis_type=AnalysisType.
         return {
             "success": False,
             "message": f"Analysis failed: {str(e)}",
+            "raw_results": None,
             "analysis_results": None,
             "formatted_results": None,
             "analysis_type": analysis_type
         }
 
 
-def _run_analysis_by_type(all_data, analysis_type):
+def _run_analysis_by_type(micro_data, transfer_data, analysis_type):
     """
     Run analysis based on the specified type
 
     Args:
-        all_data: Prepared data for analysis
+        micro_data: List of microbiology data entries
+        transfer_data: List of transfer data entries
         analysis_type: AnalysisType enum
 
     Returns:
@@ -104,6 +95,20 @@ def _run_analysis_by_type(all_data, analysis_type):
         from .data_analysis import analyze_csv_data, format_analysis_results
     else:
         from .data_analysis import analyze_csv_data, format_analysis_results
+
+    # Prepare data in the format expected by analyze_csv_data
+    all_data = []
+    for data in micro_data:
+        all_data.append({
+            "filename": f"microbiology_{data.get('filename', 'unknown')}",
+            "content": data.get('content', '')
+        })
+
+    for data in transfer_data:
+        all_data.append({
+            "filename": f"transfers_{data.get('filename', 'unknown')}",
+            "content": data.get('content', '')
+        })
 
     analysis_results = analyze_csv_data(all_data)
     formatted_results = format_analysis_results(analysis_results)
